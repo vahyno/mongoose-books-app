@@ -77,7 +77,9 @@ app.get('/api/books', function (req, res) {
   // send all books as JSON response
   console.log('books index');
   //res.json(books);
-  db.Book.find({}, function(err,books){
+  db.Book.find()
+    .populate('author')
+    .exec(function(err,books){
     if (err){
       console.log(err);
     } else {
@@ -90,12 +92,6 @@ app.get('/api/books', function (req, res) {
 app.get('/api/books/:id', function (req, res) {
   // find one book by its id
   console.log('books show', req.params);
-  // for(var i=0; i < books.length; i++) {
-  //   if (books[i]._id == req.params.id) {
-  //     res.json(books[i]);
-  //     break; // we found the right book, we can stop searching
-  //   }
-  // }
   db.Book.findById(req.params.id, function(err, singleBook){
     if (err){
       console.log(err);
@@ -107,21 +103,27 @@ app.get('/api/books/:id', function (req, res) {
 
 // create new book
 app.post('/api/books', function (req, res) {
-  // create new book with form data (`req.body`)
-  console.log('books create', req.body);
-  // var newBook = req.body;
-  // newBook._id = newBookUUID++;
-  // books.push(newBook);
-  // res.json(newBook);
-  db.Book.create(req.body,function(err, newBook){
-    if(err){
-      console.log(err)
-    }else {
-        res.json(newBook);
-      }
-  })
-});
+      // create new book with form data (`req.body`)
+      var newBook = new db.Book({
+        title: req.body.title,
+        image: req.body.image,
+        releaseDate: req.body.releaseDate,
+      });
 
+      // this code will only add an author to a book if the author already exists
+      db.Author.findOne({name: req.body.author}, function(err, author){
+        newBook.author = author;
+        // add newBook to database
+        newBook.save(function(err, book){
+          if (err) {
+            console.log("create error: " + err);
+          }
+          console.log("created ", book.title);
+          res.json(book);
+        });
+      });
+
+    });
 // update book
 app.put('/api/books/:id', function(req,res){
 // get book id from url params (`req.params`)
